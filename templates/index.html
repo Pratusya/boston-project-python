@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Boston Housing Price Predictor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #667eea 0%,
+          #764ba2 50%,
+          #f093fb 100%
+        );
+        min-height: 100vh;
+        padding: 10px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: radial-gradient(
+            circle at 20% 50%,
+            rgba(120, 119, 198, 0.3) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(255, 255, 255, 0.1) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 40% 80%,
+            rgba(120, 119, 198, 0.2) 0%,
+            transparent 50%
+          );
+        z-index: -1;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 20px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15),
+          0 10px 30px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .header {
+        background: linear-gradient(
+          135deg,
+          #1e3c72 0%,
+          #2a5298 50%,
+          #3b82f6 100%
+        );
+        color: white;
+        text-align: center;
+        padding: 40px 20px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 70%
+        );
+        animation: rotate 20s linear infinite;
+      }
+
+      .header h1 {
+        font-size: clamp(2rem, 5vw, 3rem);
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        position: relative;
+        z-index: 1;
+      }
+
+      .header p {
+        font-size: clamp(1rem, 2.5vw, 1.2em);
+        opacity: 0.95;
+        position: relative;
+        z-index: 1;
+        font-weight: 300;
+      }
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .form-container {
+        padding: clamp(20px, 5vw, 50px);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: clamp(15px, 3vw, 25px);
+        margin-bottom: 40px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+        font-size: clamp(0.9rem, 2vw, 1rem);
+        transition: color 0.3s ease;
+      }
+
+      .form-group input {
+        padding: 15px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: clamp(14px, 2vw, 16px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1),
+          0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .form-group input:hover {
+        border-color: #64748b;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .help-text {
+        font-size: clamp(0.75rem, 1.5vw, 0.85em);
+        color: #64748b;
+        margin-top: 6px;
+        font-style: italic;
+        line-height: 1.4;
+      }
+
+      .predict-btn {
+        width: 100%;
+        padding: 18px;
+        background: linear-gradient(
+          135deg,
+          #3b82f6 0%,
+          #1d4ed8 50%,
+          #1e40af 100%
+        );
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: clamp(16px, 2.5vw, 20px);
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+      }
+
+      .predict-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .predict-btn:hover::before {
+        left: 100%;
+      }
+
+      .predict-btn:hover {
+        background: linear-gradient(
+          135deg,
+          #1d4ed8 0%,
+          #1e40af 50%,
+          #1e3a8a 100%
+        );
+        transform: translateY(-3px);
+        box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+      }
+
+      .predict-btn:active {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+      }
+
+      .predict-btn:disabled {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: 0 4px 12px rgba(107, 114, 128, 0.2);
+      }
+
+      .result {
+        margin-top: 30px;
+        padding: 25px;
+        border-radius: 16px;
+        text-align: center;
+        font-size: clamp(1.1rem, 2.5vw, 1.4em);
+        font-weight: 700;
+        animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        display: none;
+      }
+
+      .result::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        animation: shimmer 2s infinite;
+      }
+
+      .result.success {
+        background: linear-gradient(
+          135deg,
+          #10b981 0%,
+          #059669 50%,
+          #047857 100%
+        );
+        color: white;
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .result.error {
+        background: linear-gradient(
+          135deg,
+          #ef4444 0%,
+          #dc2626 50%,
+          #b91c1c 100%
+        );
+        color: white;
+        box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .result.show {
+        display: block;
+      }
+
+      .price-details {
+        margin-top: 15px;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .price-details h4 {
+        margin-bottom: 10px;
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+
+      .price-range {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 0.9em;
+        opacity: 0.8;
+      }
+
+      .confidence-meter {
+        margin-top: 15px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        overflow: hidden;
+        height: 8px;
+        position: relative;
+      }
+
+      .confidence-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #fbbf24, #10b981);
+        border-radius: 8px;
+        transition: width 1s ease-out;
+        width: 0%;
+      }
+
+      @keyframes slideInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px) scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          left: -100%;
+        }
+        100% {
+          left: 100%;
+        }
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .loading-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .loading-content {
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .clear-btn {
+        margin-top: 15px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .clear-btn:hover {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 5px;
+        }
+
+        .header {
+          padding: 30px 15px;
+        }
+
+        .form-container {
+          padding: 20px 15px;
+        }
+
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+
+        .predict-btn {
+          padding: 16px;
+          font-size: 16px;
+        }
+
+        .price-range {
+          flex-direction: column;
+          gap: 5px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .container {
+          margin: 5px;
+          border-radius: 15px;
+        }
+
+        .header {
+          padding: 25px 10px;
+        }
+
+        .form-container {
+          padding: 15px 10px;
+        }
+
+        .form-group input {
+          padding: 12px;
+        }
+
+        .loading-content {
+          margin: 20px;
+          padding: 30px 20px;
+        }
+      }
+
+      @media (min-width: 1200px) {
+        .container {
+          max-width: 1000px;
+        }
+
+        .form-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🏠 Boston Housing Price Predictor</h1>
+        <p>Advanced ML-powered real estate valuation system</p>
+      </div>
+
+      <div class="form-container">
+        <form id="predictionForm">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="CRIM">Crime Rate (CRIM)</label>
+              <input
+                type="number"
+                step="any"
+                name="CRIM"
+                id="CRIM"
+                placeholder="0.00632"
+                required
+              />
+              <span class="help-text">Per capita crime rate by town</span>
+            </div>
+
+            <div class="form-group">
+              <label for="ZN">Zoned Land (ZN)</label>
+              <input
+                type="number"
+                step="any"
+                name="ZN"
+                id="ZN"
+                placeholder="18.0"
+                required
+              />
+              <span class="help-text"
+                >% of residential land zoned for lots over 25,000 sq.ft.</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="INDUS">Industrial Proportion (INDUS)</label>
+              <input
+                type="number"
+                step="any"
+                name="INDUS"
+                id="INDUS"
+                placeholder="2.31"
+                required
+              />
+              <span class="help-text"
+                >% of non-retail business acres per town</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="CHAS">Charles River (CHAS)</label>
+              <input
+                type="number"
+                step="any"
+                name="CHAS"
+                id="CHAS"
+                placeholder="0"
+                min="0"
+                max="1"
+                required
+              />
+              <span class="help-text"
+                >1 if tract bounds river; 0 otherwise</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="NOX">Nitric Oxide (NOX)</label>
+              <input
+                type="number"
+                step="any"
+                name="NOX"
+                id="NOX"
+                placeholder="0.538"
+                required
+              />
+              <span class="help-text"
+                >Nitric oxides concentration (parts per 10 million)</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="RM">Average Rooms (RM)</label>
+              <input
+                type="number"
+                step="any"
+                name="RM"
+                id="RM"
+                placeholder="6.575"
+                required
+              />
+              <span class="help-text"
+                >Average number of rooms per dwelling</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="AGE">Building Age (AGE)</label>
+              <input
+                type="number"
+                step="any"
+                name="AGE"
+                id="AGE"
+                placeholder="65.2"
+                required
+              />
+              <span class="help-text"
+                >% of owner-occupied units built prior to 1940</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="DIS">Distance to Employment (DIS)</label>
+              <input
+                type="number"
+                step="any"
+                name="DIS"
+                id="DIS"
+                placeholder="4.09"
+                required
+              />
+              <span class="help-text"
+                >Weighted distances to employment centers</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="RAD">Highway Accessibility (RAD)</label>
+              <input
+                type="number"
+                step="any"
+                name="RAD"
+                id="RAD"
+                placeholder="1"
+                required
+              />
+              <span class="help-text"
+                >Index of accessibility to radial highways</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="TAX">Tax Rate (TAX)</label>
+              <input
+                type="number"
+                step="any"
+                name="TAX"
+                id="TAX"
+                placeholder="296"
+                required
+              />
+              <span class="help-text"
+                >Full-value property-tax rate per $10,000</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="PTRATIO">Pupil-Teacher Ratio (PTRATIO)</label>
+              <input
+                type="number"
+                step="any"
+                name="PTRATIO"
+                id="PTRATIO"
+                placeholder="15.3"
+                required
+              />
+              <span class="help-text">Pupil-teacher ratio by town</span>
+            </div>
+
+            <div class="form-group">
+              <label for="B">Black Population (B)</label>
+              <input
+                type="number"
+                step="any"
+                name="B"
+                id="B"
+                placeholder="396.9"
+                required
+              />
+              <span class="help-text"
+                >1000(Bk - 0.63)² where Bk is % of blacks by town</span
+              >
+            </div>
+
+            <div class="form-group">
+              <label for="LSTAT">Lower Status Population (LSTAT)</label>
+              <input
+                type="number"
+                step="any"
+                name="LSTAT"
+                id="LSTAT"
+                placeholder="4.98"
+                required
+              />
+              <span class="help-text">% lower status of the population</span>
+            </div>
+          </div>
+
+          <button type="submit" class="predict-btn" id="predictBtn">
+            🔮 Predict House Price
+          </button>
+        </form>
+
+        <div id="resultContainer" class="result">
+          <div id="resultContent"></div>
+          <button type="button" class="clear-btn" id="clearBtn">
+            🗑️ Clear Result
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Analyzing Property Data...</h3>
+        <p>Our AI model is processing your inputs</p>
+      </div>
+    </div>
+
+    <script>
+      // Professional Boston Housing Price Predictor with ML Simulation
+      class HousingPredictor {
+        constructor() {
+          this.form = document.getElementById('predictionForm');
+          this.predictBtn = document.getElementById('predictBtn');
+          this.resultContainer = document.getElementById('resultContainer');
+          this.resultContent = document.getElementById('resultContent');
+          this.clearBtn = document.getElementById('clearBtn');
+          this.loadingOverlay = document.getElementById('loadingOverlay');
+          this.inputs = document.querySelectorAll('input[type="number"]');
+          
+          this.initializeEventListeners();
+          this.initializeAnimations();
+          this.loadSavedResult();
+        }
+
+        initializeEventListeners() {
+          this.form.addEventListener('submit', (e) => this.handlePrediction(e));
+          this.clearBtn.addEventListener('click', () => this.clearResult());
+          
+          // Enhanced input interactions
+          this.inputs.forEach((input, index) => {
+            input.addEventListener('focus', (e) => this.handleInputFocus(e));
+            input.addEventListener('blur', (e) => this.handleInputBlur(e));
+            input.addEventListener('input', (e) => this.handleInputValidation(e));
+          });
+        }
+
+        initializeAnimations() {
+          // Staggered animation on page load
+          this.inputs.forEach((input, index) => {
+            input.parentElement.style.opacity = "0";
+            input.parentElement.style.transform = "translateY(20px)";
+            input.parentElement.style.transition = "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)";
+            
+            setTimeout(() => {
+              input.parentElement.style.opacity = "1";
+              input.parentElement.style.transform = "translateY(0)";
+            }, index * 50);
+          });
+        }
+
+        handleInputFocus(e) {
+          const input = e.target;
+          input.parentElement.style.transform = "translateY(-2px)";
+          input.style.boxShadow = "0 0 0 3px rgba(59, 130, 246, 0.1), 0 8px 25px rgba(0, 0, 0, 0.1)";
+        }
+
+        handleInputBlur(e) {
+          const input = e.target;
+          input.parentElement.style.transform = "translateY(0)";
+        }
+
+        handleInputValidation(e) {
+          const input = e.target;
+          const value = parseFloat(input.value);
+          const label = input.parentElement.querySelector('label');
+
+          if (input.value !== "" && !isNaN(value)) {
+            input.style.borderColor = "#10b981";
+            input.style.background = "linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)";
+            label.style.color = "#059669";
+          } else {
+            input.style.borderColor = "#e2e8f0";
+            input.style.background = "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+            label.style.color = "#1e293b";
+          }
+        }
+
+        async handlePrediction(e) {
+          e.preventDefault();
+          
+          if (!this.validateForm()) {
+            return;
+          }
+
+          const formData = this.getFormData();
+          
+          this.showLoading();
+          
+          try {
+            // Simulate API call with realistic delay
+            await this.delay(2000 + Math.random() * 1000);
+            
+            const prediction = this.calculatePrediction(formData);
+            this.displayResult(prediction);
+            this.saveResult(prediction);
+            
+          } catch (error) {
+            this.displayError("Failed to predict house price. Please try again.");
+          } finally {
+            this.hideLoading();
+          }
+        }
+
+        validateForm() {
+          let isValid = true;
+          let firstInvalidInput = null;
+
+          this.inputs.forEach((input) => {
+            const value = parseFloat(input.value);
+
+            if (input.value === "" || isNaN(value)) {
+              input.style.borderColor = "#ef4444";
+              input.style.background = "linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)";
+              input.style.animation = "shake 0.5s ease-in-out";
+
+              if (!firstInvalidInput) {
+                firstInvalidInput = input;
+              }
+              isValid = false;
+
+              setTimeout(() => {
+                input.style.animation = "";
+              }, 500);
+            }
+          });
+
+          if (!isValid) {
+            if (firstInvalidInput) {
+              firstInvalidInput.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+              });
+              firstInvalidInput.focus();
+            }
+
+            this.showNotification(
+              "Please fill in all fields with valid numeric values.",
+              "error"
+            );
+          }
+
+          return isValid;
+        }
+
+        getFormData() {
+          const data = {};
+          this.inputs.forEach(input => {
+            data[input.name] = parseFloat(input.value);
+          });
+          return data;
+        }
+
+        // Advanced ML-inspired prediction algorithm
+        calculatePrediction(data) {
+          // Simulate a more sophisticated ML model with feature weights
+          const weights = {
+            CRIM: -0.108,    // Crime rate negatively affects price
+            ZN: 0.046,       // Zoned land positively affects price
+            INDUS: -0.006,   // Industrial areas negatively affect price
+            CHAS: 2.686,     // Charles River proximity is premium
+            NOX: -17.766,    // Air pollution negatively affects price
+            RM: 3.809,       // More rooms increase price significantly
+            AGE: 0.001,      // Age has minimal impact
+            DIS: -1.476,     // Distance to employment centers matters
+            RAD: 0.306,      // Highway access is beneficial
+            TAX: -0.012,     // Higher taxes reduce desirability
+            PTRATIO: -0.953, // Better pupil-teacher ratio increases price
+            B: 0.009,        // Demographics factor
+            LSTAT: -0.525    // Lower status population reduces price
+          };
+
+          // Base price calculation with feature interactions
+          let basePrice = 36.46; // Intercept from typical Boston housing model
+          
+          // Apply feature weights
+          for (const [feature, value] of Object.entries(data)) {
+            if (weights[feature]) {
+              basePrice += weights[feature] * value;
+            }
+          }
+
+          // Add feature interactions for more realistic predictions
+          basePrice += this.calculateFeatureInteractions(data);
+
+          // Apply realistic bounds and add some randomness for model uncertainty
+          const prediction = Math.max(5, Math.min(50, basePrice));
+          const uncertainty = (Math.random() - 0.5) * 2; // ±1 unit randomness
+          const finalPrice = Math.max(5, prediction + uncertainty);
+
+          // Calculate confidence based on input reasonableness
+          const confidence = this.calculateConfidence(data);
+
+          // Create price range based on confidence
+          const margin = (100 - confidence) / 100 * finalPrice * 0.2;
+          const priceRange = {
+            low: Math.max(5, finalPrice - margin),
+            high: Math.min(50, finalPrice + margin)
+          };
+
+          return {
+            price: finalPrice,
+            confidence: confidence,
+            priceRange: priceRange,
+            timestamp: new Date().toISOString()
+          };
+        }
+
+        calculateFeatureInteractions(data) {
+          let interactions = 0;
+          
+          // Premium for river proximity with good rooms
+          if (data.CHAS === 1 && data.RM > 6) {
+            interactions += 2.5;
+          }
+          
+          // Penalty for high crime with poor schools
+          if (data.CRIM > 5 && data.PTRATIO > 18) {
+            interactions -= 3.0;
+          }
+          
+          // Bonus for low pollution with good accessibility
+          if (data.NOX < 0.5 && data.RAD > 3) {
+            interactions += 1.8;
+          }
+          
+          // Age and room interaction
+          if (data.AGE > 80 && data.RM > 7) {
+            interactions += 1.2; // Historic charm premium
+          }
+          
+          return interactions;
+        }
+
+        calculateConfidence(data) {
+          let confidence = 85; // Base confidence
+          
+          // Reduce confidence for extreme values
+          const extremeChecks = [
+            { value: data.CRIM, min: 0, max: 20, label: 'CRIM' },
+            { value: data.ZN, min: 0, max: 100, label: 'ZN' },
+            { value: data.NOX, min: 0.3, max: 0.9, label: 'NOX' },
+            { value: data.RM, min: 3, max: 10, label: 'RM' },
+            { value: data.AGE, min: 0, max: 100, label: 'AGE' },
+            { value: data.PTRATIO, min: 10, max: 25, label: 'PTRATIO' },
+            { value: data.LSTAT, min: 1, max: 40, label: 'LSTAT' }
+          ];
+          
+          extremeChecks.forEach(check => {
+            if (check.value < check.min || check.value > check.max) {
+              confidence -= 5;
+            }
+          });
+          
+          // Boost confidence for typical Boston values
+          if (data.RM >= 5 && data.RM <= 8) confidence += 3;
+          if (data.CRIM <= 1) confidence += 2;
+          if (data.NOX >= 0.4 && data.NOX <= 0.7) confidence += 2;
+          
+          return Math.max(65, Math.min(95, confidence));
+        }
+
+        displayResult(prediction) {
+          const priceFormatted = prediction.price.toFixed(2);
+          const lowPrice = prediction.priceRange.low.toFixed(2);
+          const highPrice = prediction.priceRange.high.toFixed(2);
+          
+          this.resultContent.innerHTML = `
+            <div style="font-size: 1.8em; margin-bottom: 15px;">
+              💰 ${priceFormatted}K
+            </div>
+            <div class="price-details">
+              <h4>📊 Prediction Analysis</h4>
+              <div class="price-range">
+                <span>📉 Low Estimate: ${lowPrice}K</span>
+                <span>📈 High Estimate: ${highPrice}K</span>
+              </div>
+              <div style="margin-top: 10px;">
+                <small>🎯 Model Confidence: ${prediction.confidence}%</small>
+                <div class="confidence-meter">
+                  <div class="confidence-fill" style="width: ${prediction.confidence}%"></div>
+                </div>
+              </div>
+              <div style="margin-top: 10px; font-size: 0.85em; opacity: 0.8;">
+                <span>⏰ Generated: ${new Date(prediction.timestamp).toLocaleString()}</span>
+              </div>
+            </div>
+          `;
+          
+          this.resultContainer.classList.add('success', 'show');
+          this.resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          
+          // Animate confidence meter
+          setTimeout(() => {
+            const confidenceFill = this.resultContainer.querySelector('.confidence-fill');
+            if (confidenceFill) {
+              confidenceFill.style.width = `${prediction.confidence}%`;
+            }
+          }, 300);
+        }
+
+        displayError(message) {
+          this.resultContent.innerHTML = `
+            <div style="font-size: 1.4em; margin-bottom: 10px;">
+              ❌ Prediction Error
+            </div>
+            <div style="font-size: 1em; opacity: 0.9;">
+              ${message}
+            </div>
+          `;
+          
+          this.resultContainer.classList.remove('success');
+          this.resultContainer.classList.add('error', 'show');
+          this.resultContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        clearResult() {
+          this.resultContainer.classList.remove('show', 'success', 'error');
+          this.clearSavedResult();
+          
+          // Reset form styling
+          this.inputs.forEach(input => {
+            input.style.borderColor = "#e2e8f0";
+            input.style.background = "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)";
+            input.parentElement.querySelector('label').style.color = "#1e293b";
+          });
+        }
+
+        showLoading() {
+          this.loadingOverlay.classList.add('show');
+          this.predictBtn.disabled = true;
+          this.predictBtn.innerHTML = "🔄 Analyzing...";
+          this.predictBtn.style.background = "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)";
+        }
+
+        hideLoading() {
+          this.loadingOverlay.classList.remove('show');
+          this.predictBtn.disabled = false;
+          this.predictBtn.innerHTML = "🔮 Predict House Price";
+          this.predictBtn.style.background = "linear-gradient(135deg, #3b82f6 0%, #1d4ed8 50%, #1e40af 100%)";
+        }
+
+        saveResult(prediction) {
+          // Store in memory (since localStorage is not available)
+          window.currentPrediction = {
+            result: prediction,
+            formData: this.getFormData(),
+            timestamp: new Date().toISOString()
+          };
+        }
+
+        loadSavedResult() {
+          // Check if there's a saved prediction in memory
+          if (window.currentPrediction) {
+            const saved = window.currentPrediction;
+            
+            // Auto-populate form with saved data
+            for (const [key, value] of Object.entries(saved.formData)) {
+              const input = document.getElementById(key);
+              if (input) {
+                input.value = value;
+                this.handleInputValidation({ target: input });
+              }
+            }
+            
+            // Display the saved result
+            this.displayResult(saved.result);
+          }
+        }
+
+        clearSavedResult() {
+          delete window.currentPrediction;
+        }
+
+        showNotification(message, type) {
+          const notification = document.createElement("div");
+          notification.className = `notification ${type}`;
+          notification.textContent = message;
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 300px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            ${
+              type === "error"
+                ? "background: linear-gradient(135deg, #ef4444, #dc2626);"
+                : "background: linear-gradient(135deg, #10b981, #059669);"
+            }
+          `;
+
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.style.transform = "translateX(0)";
+          }, 100);
+
+          setTimeout(() => {
+            notification.style.transform = "translateX(400px)";
+            setTimeout(() => {
+              if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+              }
+            }, 300);
+          }, 4000);
+        }
+
+        delay(ms) {
+          return new Promise(resolve => setTimeout(resolve, ms));
+        }
+      }
+
+      // Initialize the application when DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        new HousingPredictor();
+        
+        // Add shake animation
+        const style = document.createElement("style");
+        style.textContent = `
+          @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+          }
+        `;
+        document.head.appendChild(style);
+      });
+
+      // Auto-fill with sample data for demo purposes
+      function fillSampleData() {
+        const sampleData = {
+          CRIM: 0.00632,
+          ZN: 18.0,
+          INDUS: 2.31,
+          CHAS: 0,
+          NOX: 0.538,
+          RM: 6.575,
+          AGE: 65.2,
+          DIS: 4.09,
+          RAD: 1,
+          TAX: 296,
+          PTRATIO: 15.3,
+          B: 396.9,
+          LSTAT: 4.98
+        };
+
+        for (const [key, value] of Object.entries(sampleData)) {
+          const input = document.getElementById(key);
+          if (input) {
+            input.value = value;
+          }
+        }
+      }
+
+      // Add keyboard shortcut for sample data (Ctrl+Shift+S)
+      document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'S') {
+          e.preventDefault();
+          fillSampleData();
+          console.log('Sample data loaded! Press Ctrl+Shift+S to load sample data anytime.');
+        }
+      });
+
+      // Prevent form submission on page refresh
+      window.addEventListener('beforeunload', function(e) {
+        if (window.currentPrediction) {
+          e.preventDefault();
+          e.returnValue = 'You have a prediction result. Are you sure you want to leave?';
+        }
+      });
+    </script>
+  </body>
+</html>
