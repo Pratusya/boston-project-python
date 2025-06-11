@@ -1,26 +1,41 @@
-# Update your app.py file:
-
 from flask import Flask, render_template, request
 import pickle
 import numpy as np
 import os
-from model_pipeline import ModelPipeline  # Import the class
 
-# Remove the ModelPipeline class definition from app.py since it's now in model_pipeline.py
+# Keep the ModelPipeline class in app.py for pickle compatibility
+class ModelPipeline:
+    def __init__(self, scaler, model):
+        self.scaler = scaler
+        self.model = model
+    
+    def predict(self, X):
+        X_scaled = self.scaler.transform(X)
+        return self.model.predict(X_scaled)
 
 app = Flask(__name__)
 
-# Load the model
+# Load the model with error handling
 def load_model():
-    if not os.path.exists('model.pkl'):
-        print("Model file not found! Please run 'python train_model.py' first.")
+    try:
+        if not os.path.exists('model.pkl'):
+            print("Model file not found! Please run 'python train_model.py' first.")
+            return None
+        
+        with open('model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        print("Model loaded successfully!")
+        return model
+    except Exception as e:
+        print(f"Error loading model: {e}")
         return None
-    
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    return model
 
-model = load_model()
+# Load model at startup, but don't fail if it doesn't exist
+model = None
+try:
+    model = load_model()
+except Exception as e:
+    print(f"Warning: Could not load model: {e}")
 
 @app.route('/')
 def home():
@@ -30,7 +45,8 @@ def home():
 def predict():
     if model is None:
         return render_template('index.html', 
-                             prediction_text="Error: Model not loaded. Please run train_model.py first.")
+                             prediction_text="Error: Model not loaded. Please ensure model.pkl exists.",
+                             show_error=True)
     
     try:
         # Extract features from form
@@ -76,6 +92,4 @@ def about():
     return render_template('about.html')
 
 if __name__ == "__main__":
-    if model is None:
-        print("Warning: Model not loaded. Please run 'python train_model.py' first.")
     app.run(debug=True, host='0.0.0.0', port=5000)
