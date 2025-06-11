@@ -1,17 +1,12 @@
+# Update your app.py file:
+
 from flask import Flask, render_template, request
 import pickle
 import numpy as np
 import os
+from model_pipeline import ModelPipeline  # Import the class
 
-# Define the ModelPipeline class (same as in train_model.py)
-class ModelPipeline:
-    def __init__(self, scaler, model):
-        self.scaler = scaler
-        self.model = model
-    
-    def predict(self, X):
-        X_scaled = self.scaler.transform(X)
-        return self.model.predict(X_scaled)
+# Remove the ModelPipeline class definition from app.py since it's now in model_pipeline.py
 
 app = Flask(__name__)
 
@@ -48,7 +43,7 @@ def predict():
             float(request.form['RM']),
             float(request.form['AGE']),
             float(request.form['DIS']),
-            float(request.form['RAD']),  # Added RAD feature
+            float(request.form['RAD']),
             float(request.form['TAX']),
             float(request.form['PTRATIO']),
             float(request.form['B']),
